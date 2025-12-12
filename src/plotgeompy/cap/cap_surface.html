@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Elliptic SPD Tube (Three.js)</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.161.0/build/three.module.js"
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="module">
+        import * as THREE from "three";
+        import { OrbitControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js";
+
+        // ----- Basic scene setup -----
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);
+
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            100
+        );
+        camera.position.set(6, 6, 6);
+        camera.lookAt(0, 0, 1);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 1);
+        controls.update();
+
+        // Axes helper (optional)
+        const axesHelper = new THREE.AxesHelper(3);
+        scene.add(axesHelper);
+
+        // Lights
+        const light1 = new THREE.DirectionalLight(0xffffff, 1.0);
+        light1.position.set(5, 10, 7);
+        scene.add(light1);
+
+        const light2 = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(light2);
+
+        // ----- Surface parameters (same math as your manim version) -----
+        const zMin = 0.0;
+        const zMax = 2.0;   // we will grow up to this
+        const c = 1.0;
+
+        const radialSegments = 128;  // in theta
+        const heightSegments = 64;   // in "alpha" (0..1 mapped to z)
+
+        const vertexCount = (radialSegments + 1) * (heightSegments + 1);
+        const positions = new Float32Array(vertexCount * 3);
+        const colors = new Float32Array(vertexCount * 3);
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+        // Build index buffer for triangles
+        const indices = [];
+        for (let i = 0; i < heightSegments; i++) {
+            for (let j = 0; j < radialSegments; j++) {
+                const a = i * (radialSegments + 1) + j;
+                const b = (i + 1) * (radialSegments + 1) + j;
+                const cIdx = (i + 1) * (radialSegments + 1) + (j + 1);
+                const d = i * (radialSegments + 1) + (j + 1);
+                // Two triangles (a,b,d) and (b,cIdx,d)
+                indices.push(a, b, d, b, cIdx, d);
+            }
+        }
+        geometry.setIndex(indices);
+
+        const material = new THREE.MeshPhongMaterial({
+            side: THREE.DoubleSide,
+            vertexColors: true,
+            shininess: 60
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // ----- Update geometry for a given top z -----
+        function updateGeometry(zTop) {
+            let p = 0;
+            let cptr = 0;
+
+            for (let i = 0; i <= heightSegments; i++) {
+                const alpha = i / heightSegments;                // 0..1
+                const z = zMin + alpha * (zTop - zMin);          // z in [zMin, zTop]
+
+                // a(z) = c * exp(z/2), b(z) = c * exp(1)
+                const a = c * Math.exp(z / 2.0);
+                const b = c * Math.exp(1.0);
+
+                // color gradient along z (simple HSL blue→green→yellow)
+                const tColor = (z - zMin) / (zMax - zMin);       // 0..1
+                const color = new THREE.Color();
+                color.setHSL(0.66 * (1 - tColor), 1.0, 0.5);     // hue from blue to greenish
+
+                for (let j = 0; j <= radialSegments; j++) {
+                    const theta = (j / radialSegments) * Math.PI * 2.0;
+
+                    const x = a * Math.cos(theta);
+                    const y = b * Math.sin(theta);
+
+                    positions[p++] = x;
+                    positions[p++] = y;
+                    positions[p++] = z;
+
+                    colors[cptr++] = color.r;
+                    colors[cptr++] = color.g;
+                    colors[cptr++] = color.b;
+                }
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+            geometry.computeVertexNormals();
+        }
+
+        // Initialize geometry at zTop ~ 0
+        updateGeometry(zMin + 1e-3);
+
+        // ----- Animation: grow from zMin to zMax -----
+        const startTime = performance.now();
+        const duration = 50000; // ms
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsed = performance.now() - startTime;
+            const t = Math.min(elapsed / duration, 1.0);        // 0..1
+            const zTop = zMin + t * (zMax - zMin);
+
+            updateGeometry(zTop);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
