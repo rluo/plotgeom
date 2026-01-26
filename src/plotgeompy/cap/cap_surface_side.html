@@ -50,7 +50,7 @@
             padding: 6px 10px;
             background: rgba(15, 23, 42, 0.82);
             color: #fff;
-            font-size: 13px;
+            font-size: 30px;
             border-radius: 6px;
             letter-spacing: 0.01em;
         }
@@ -102,12 +102,13 @@
 
         #panel h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 40px;
             letter-spacing: 0.02em;
+            text-align: center;
         }
 
         #panel .sub {
-            font-size: 13px;
+            font-size: 20px;
             opacity: 0.7;
             margin-top: -6px;
         }
@@ -161,7 +162,7 @@
         }
 
         #z-value {
-            font-size: 14px;
+            font-size: 40px;
             letter-spacing: 0.02em;
             color: #475569;
         }
@@ -188,7 +189,7 @@
 
 <body>
     <div id="view-3d" class="view">
-        <div class="label">3D surface — colors map to z</div>
+        <div class="label">2x2 SPD Matrices as Covariate Varies</div>
         <div class="mini-views">
             <div id="view-top" class="mini-view">
                 <div class="mini-label">Top view</div>
@@ -199,7 +200,7 @@
         </div>
     </div>
     <div id="panel">
-        <h2>Covariate Values (z-axis)</h2>
+        <h2>Covariate Values <br> (z-axis)</h2>
         <div class="colorbar-wrap">
             <canvas id="colorbar" width="80" height="320"></canvas>
             <input id="z-slider" type="range" min="0" max="2" step="0.01" value="0" aria-label="z level">
@@ -383,7 +384,7 @@
 
         // Animation controls
         let startTime = performance.now();
-        const duration = 50000; // ms
+        const duration = 25000; // ms
         let autoPlay = true;
 
         function animate() {
