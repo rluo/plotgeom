@@ -55,6 +55,38 @@
             letter-spacing: 0.01em;
         }
 
+        .mini-views {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+        }
+
+        .mini-view {
+            position: relative;
+            width: 280px;
+            height: 240px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f8fafc;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .mini-label {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            padding: 4px 8px;
+            background: rgba(15, 23, 42, 0.75);
+            color: #fff;
+            font-size: 11px;
+            border-radius: 999px;
+            letter-spacing: 0.02em;
+        }
+
         /* Right side panel */
         #panel {
             display: flex;
@@ -157,10 +189,17 @@
 <body>
     <div id="view-3d" class="view">
         <div class="label">3D surface — colors map to z</div>
+        <div class="mini-views">
+            <div id="view-top" class="mini-view">
+                <div class="mini-label">Top view</div>
+            </div>
+            <div id="view-side" class="mini-view">
+                <div class="mini-label">Side view</div>
+            </div>
+        </div>
     </div>
     <div id="panel">
-        <h2>Z Control</h2>
-        <div class="sub">match colorbar to mesh</div>
+        <h2>Covariate Values (z-axis)</h2>
         <div class="colorbar-wrap">
             <canvas id="colorbar" width="80" height="320"></canvas>
             <input id="z-slider" type="range" min="0" max="2" step="0.01" value="0" aria-label="z level">
@@ -185,9 +224,29 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container3d.appendChild(renderer.domElement);
 
+        const containerTop = document.getElementById("view-top");
+        const topRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        topRenderer.setPixelRatio(window.devicePixelRatio);
+        containerTop.appendChild(topRenderer.domElement);
+
+        const containerSide = document.getElementById("view-side");
+        const sideRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        sideRenderer.setPixelRatio(window.devicePixelRatio);
+        containerSide.appendChild(sideRenderer.domElement);
+
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 0, 1);
         controls.update();
+
+        const topCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        topCamera.position.set(0, 0, 10);
+        topCamera.up.set(0, 1, 0);
+        topCamera.lookAt(0, 0, 0);
+
+        const sideCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        sideCamera.position.set(0, 10, 0);
+        sideCamera.up.set(0, 0, 1);
+        sideCamera.lookAt(0, 0, 0);
 
         // Axes helper (optional)
         const axesHelper = new THREE.AxesHelper(3);
@@ -343,6 +402,8 @@
 
             updateGeometry(zTop);
             renderer.render(scene, camera);
+            topRenderer.render(scene, topCamera);
+            sideRenderer.render(scene, sideCamera);
         }
 
         animate();
@@ -364,6 +425,8 @@
             setZValue(zTop);
             updateGeometry(zTop);
             renderer.render(scene, camera);
+            topRenderer.render(scene, topCamera);
+            sideRenderer.render(scene, sideCamera);
         });
 
         playToggle.addEventListener("click", () => {
@@ -386,6 +449,18 @@
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
+
+            const topWidth = containerTop.clientWidth;
+            const topHeight = containerTop.clientHeight;
+            topCamera.aspect = topWidth / topHeight;
+            topCamera.updateProjectionMatrix();
+            topRenderer.setSize(topWidth, topHeight);
+
+            const sideWidth = containerSide.clientWidth;
+            const sideHeight = containerSide.clientHeight;
+            sideCamera.aspect = sideWidth / sideHeight;
+            sideCamera.updateProjectionMatrix();
+            sideRenderer.setSize(sideWidth, sideHeight);
         }
 
         window.addEventListener("resize", resize);
